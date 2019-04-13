@@ -58,7 +58,7 @@ As a first step in the *SaTAnn* pipeline, Ribo-seq data on exonic bins and splic
 
 In this section we can visualize the results from the filtering step.
 
-## 1.1 Number of selected transcript per gene {.tabset}
+## 1.1 Number of selected transcripts per gene {.tabset}
 ```{r sel_1, echo=FALSE, warning=FALSE, message=FALSE, results="asis", fig.width=10, dpi=150}
 # plot barplot for each sample in separate tabs
 for (i in c(1:length(rdata_list))){
