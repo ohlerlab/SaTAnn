@@ -39,13 +39,13 @@ and
 ?run_SaTAnn
 ```
 
-is master function used to perform the entire analysis workflow, or single genes or (**recommended**) entire transcriptomes.
+is the master function used to perform the entire analysis workflow, or single genes or (**recommended**) entire transcriptomes.
 Please check the vignette for an example workflow.
 
 
 For any question, please email:
 
-calviello.l.bio@gmail.com
+calviello.l.bio@gmail.com or uwe.ohler@mdc-berlin.de
 
 
 Enjoy!
