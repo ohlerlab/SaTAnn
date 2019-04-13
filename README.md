@@ -16,6 +16,7 @@ To install *SaTAnn*:
 ```
 library("devtools")
 install_github(repo = "lcalviell/SaTAnn")
+
 library("SaTAnn")
 
 ```
