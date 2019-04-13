@@ -31,15 +31,14 @@ parses a *.gtf* and a *.2bit* file. (this need to be done once per each annotati
 ```
 ?prepare_for_SaTAnn
 ```
-or (**recommended**) the *Ribo-seQC* package (https://github.com/lcalviell/Ribo-seQC) can create an input for *SaTAnn* from a Ribo-seq .bam file
+or (**recommended**) the *Ribo-seQC* package (https://github.com/lcalviell/Ribo-seQC) can create input files for *SaTAnn* using a Ribo-seq .bam file.
 
 
-and
 ```
 ?run_SaTAnn
 ```
 
-is the master function used to perform the entire analysis workflow, or single genes or (**recommended**) entire transcriptomes.
+is the master function used to perform the entire analysis workflow, for single genes or (**recommended**) entire transcriptomes.
 Please check the vignette for an example workflow.
 
 
