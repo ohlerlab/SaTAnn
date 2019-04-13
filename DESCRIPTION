@@ -1,0 +1,13 @@
+Package: SaTAnn
+Title: Splice-Aware Translatome Annotation
+Version: 0.99.0
+Authors@R: c(person("Lorenzo", "Calviello", email = "calviello.l.bio@gmail.com", role = c("aut","cre")),
+    person("Uwe", "Ohler", email = "Uwe.Ohler@mdc-berlin.de", role = c("rev","fnd")))
+Description: SaTAnn is a method that quantifies translation at the single ORF level using Ribo-seq data.
+Depends: rtracklayer, BSgenome, devtools, Biostrings, GenomicFeatures, foreach, doMC, multitaper, GenomicAlignments, GenomicFiles, reshape2, ggplot2, cowplot, grid, BiocGenerics, knitr, gridExtra, rmarkdown
+License: GPL-3 or above
+Encoding: UTF-8
+LazyData: FALSE
+Name: SaTAnn
+biocViews: RiboSeq, GenomeAnnotation, Transcriptomics, Software
+RoxygenNote: 6.1.1
