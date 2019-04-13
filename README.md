@@ -1,7 +1,7 @@
 # SaTAnn
 an R package to detect and quantify ORF translation using Ribo-seq data
 
-*SaTAnn* is an R package that aims at detecting and quantifiying ORF translation on complex transcriptomes using Ribo-seq data.
+*SaTAnn* (Splice-aware Translatome Annotation) is an R package that aims at detecting and quantifiying ORF translation on complex transcriptomes using Ribo-seq data.
 This package uses syntax and functions present in Bioconductor packages like *GenomicFeatures*, *rtracklayer* or *BSgenome*. 
 *SaTAnn* aims at quantifying translation at the single ORF level taking into account the presence of multiple transcripts expressed by each gene.
 To do so, the *SaTAnn* pipeline consists of transcript filtering, *de-novo* ORF finding, ORF quantification and ORF annotation.
