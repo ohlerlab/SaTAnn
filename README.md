@@ -6,7 +6,15 @@ This package uses syntax and functions present in Bioconductor packages like *Ge
 *SaTAnn* aims at quantifying translation at the single ORF level taking into account the presence of multiple transcripts expressed by each gene.
 To do so, the *SaTAnn* pipeline consists of transcript filtering, *de-novo* ORF finding, ORF quantification and ORF annotation.
 A variety of annotation methods, both in transcript and genomic space, is performed for each ORF, to yield a more complete picture of alternative splice sites usage, uORF translation, translation on NMD candidates etc...
-More details can be found in our manuscript (*to be added soon...*)
+More details can be found in our manuscript:
+
+### SaTAnn quantifies translation on the functionally heterogeneous transcriptome ###
+
+*Lorenzo Calviello^, Antje Hirsekorn, Uwe Ohler^*
+
+**biorXiv (2019)**, doi: https://doi.org/10.1101/608794
+
+https://www.biorxiv.org/content/10.1101/608794v1
 
 We recommend users to have a look at the vignette: https://htmlpreview.github.io/?https://github.com/lcalviell/SaTann/blob/master/SaTAnn_vignette.html, or our manual (*SaTAnn_manual.pdf*).
 
