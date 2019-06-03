@@ -2767,7 +2767,6 @@ annotate_ORFs<-function(results_ORFs,Annotation,genome_sequence,region,genetic_c
 SaTAnn<-function(region,for_SaTAnn,genetic_code_region,
                  orf_find.all_starts=T,orf_find.nostarts=F,orf_find.start_sel_cutoff = NA,orf_find.start_sel_cutoff_ave = .5,
                  orf_find.cutoff_fr_ave=.5,orf_quant.cutoff_cums = NA,orf_quant.cutoff_pct = 2,orf_quant.cutoff_P_sites=NA){
-    
     P_sites_region<-for_SaTAnn$P_sites_all[for_SaTAnn$P_sites_all%over%region]
     P_sites_uniq_region<-for_SaTAnn$P_sites_uniq[for_SaTAnn$P_sites_uniq%over%region]
     P_sites_uniq_mm_region<-for_SaTAnn$P_sites_uniq_mm[for_SaTAnn$P_sites_uniq_mm%over%region]
@@ -2850,7 +2849,7 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
                      write_temp_files=T,write_GTF_file=T,write_protein_fasta=T,interactive=T,
                      stn.orf_find.all_starts=T,stn.orf_find.nostarts=F,stn.orf_find.start_sel_cutoff = NA,
                      stn.orf_find.start_sel_cutoff_ave = .5,stn.orf_find.cutoff_fr_ave=.5,
-                     stn.orf_quant.cutoff_cums = NA,stn.orf_quant.cutoff_pct = 2,stn.orf_quant.cutoff_P_sites=NA){    
+                     stn.orf_quant.cutoff_cums = NA,genome_seq=NULL,stn.orf_quant.cutoff_pct = 2,stn.orf_quant.cutoff_P_sites=NA){    
     if(n_cores>1){
         registerDoMC(n_cores)
     }
@@ -2865,8 +2864,74 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
     cat(paste("Loading annotation and Ribo-seq signal ... ",date(),"\n",sep = ""))
     
     load_annotation(annotation_file)
-    for_SaTAnn_data<-get(load(for_SaTAnn_file))
-    
+
+    if(!is.null(genome_seq)) genome_seq <<- Rsamtools::FaFile(genome_seq)
+
+       ##If we have only one object specified, use that, otherwise combine them all
+    message('loading p site data')
+    if(length(for_SaTAnn_file)>1){
+        stopifnot(length(prefix)==1)
+
+        load_obj <- function(f){
+            env <- new.env()
+            nms <- load(f, env)
+            lapply(nms,message)
+            stopifnot(length(nms)==1)
+            env[[nms[[1]]]]
+        }
+
+    add_scoregranges <- function(grs,addcols='score',idcols=NULL){
+      scores <- grs[[1]]
+      require(magrittr)
+      if(length(grs)>1){
+        for(i in 2:length(grs)){
+          
+
+          matchinds <- match(scores,grs[[i]])
+          for(idcol in idcols){
+            colmatch <-(
+                mcols(scores)[[idcol]][!is.na(matchinds)] == 
+                  mcols(grs[[i]])[[idcol]][na.omit(matchinds)]
+            )
+
+            matchinds[!all(colmatch)] <- NA
+          }
+          nomatchinds <- setdiff(seq_along(grs[[i]]), matchinds)
+          for(addcol in addcols[1]){
+            mcols(scores)[[addcol]][!is.na(matchinds)] %<>%add(mcols(grs[[i]])[[addcol]][na.omit(matchinds)])
+          }
+          scores <- c(scores,grs[[i]][nomatchinds,])
+        }
+      }
+      sort(scores) 
+    }
+
+      loadobs <- for_SaTAnn_file
+      haspsites <- file.exists(loadobs) & (file.info(loadobs)$size>0)
+      nonzeroloadobs <- loadobs[haspsites]
+      if(!any(haspsites)) stop('None of the supplied objects have p sites')
+
+
+      message('loading');message(nonzeroloadobs[[1]])
+      for_SaTAnn_data<-load_obj(nonzeroloadobs[1])
+      for(i in seq_along(nonzeroloadobs)[-1]){
+      # for(i in 2){
+        message('loading');message(nonzeroloadobs[[i]])
+        for_SaTAnn_data2 <- load_obj(nonzeroloadobs[[i]])
+        for_SaTAnn_data$P_sites_all <- add_scoregranges(list(for_SaTAnn_data$P_sites_all,for_SaTAnn_data2$P_sites_all)) 
+        for_SaTAnn_data$P_sites_uniq <- add_scoregranges(list(for_SaTAnn_data$P_sites_uniq,for_SaTAnn_data2$P_sites_uniq)) 
+        for_SaTAnn_data$P_sites_uniq_mm <- add_scoregranges(list(for_SaTAnn_data$P_sites_uniq_mm,for_SaTAnn_data2$P_sites_uniq_mm)) 
+        for_SaTAnn_data$junctions <- add_scoregranges(
+          list(for_SaTAnn_data$junctions,for_SaTAnn_data2$junctions),
+          addcols=c('reads','unique_reads'),
+          idcols = c('tx_name','gene_id')
+        ) 
+        rm(for_SaTAnn_data2)
+      }
+    }else{
+        for_SaTAnn_data<-get(load(for_SaTAnn_file))
+    }
+
     genes_red<-reduce(unlist(GTF_annotation$txs_gene))
     
     if(!is.na(gene_name[1])){
@@ -2891,17 +2956,15 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
     ovs_genesred<-summarizeOverlaps(genes_red,reads = for_SaTAnn_data$P_sites_all)
     
     genes_red<-genes_red[which(assay(ovs_genesred)>4)]
-    
+        
+
     if(length(genes_red)==0){
         stop(paste("Not enough P_sites signal over genomic regions! ",date(),sep = ""))
     }
     
     cat(paste("Summoning SaTAnn with ", sum(for_SaTAnn_data$P_sites_all%over%genes_red)," P_sites positions over ", length(genes_red), " genomic regions using ",n_cores," processor(s) ... ",date(),"\n",sep = ""))
     
-    if(n_cores>1){
-        
-        ORFs_found<-foreach(g=1:length(genes_red),.packages='GenomicRanges') %dopar%{
-            
+    run_sat_g<-function(g){
             gen_region<-genes_red[g]
             genetcd<-GTF_annotation$genetic_codes$genetic_code[rownames(GTF_annotation$genetic_codes)==as.character(seqnames(gen_region))]
             genetcd<-getGeneticCode(genetcd)
@@ -2911,10 +2974,20 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
                    orf_find.start_sel_cutoff = stn.orf_find.start_sel_cutoff,orf_find.start_sel_cutoff_ave = stn.orf_find.start_sel_cutoff_ave,
                    orf_find.cutoff_fr_ave=stn.orf_find.cutoff_fr_ave,orf_quant.cutoff_cums = stn.orf_quant.cutoff_cums,
                    orf_quant.cutoff_pct = stn.orf_quant.cutoff_pct,orf_quant.cutoff_P_sites=stn.orf_quant.cutoff_P_sites)
-        }
-        
     }
-    
+
+
+    if(n_cores>1){
+        
+        ORFs_found<-foreach(g=1:length(genes_red),.packages='GenomicRanges') %dopar%{ purrr::safely(run_sat_g)(g)}
+
+        ORFs_failed<-purrr::map_lgl(purrr::map(ORFs_found,'result'),is.null)
+        ORFs_found_failed<-ORFs_found[ORFs_failed]
+        save(ORFs_found_failed,genes_red,ORFs_failed,file = paste(prefix,"satann_failed_genes",sep="_"))
+        ORFs_found <- ORFs_found[!ORFs_failed]
+        ORFs_found <- purrr::map(ORFs_found,'result')
+    }
+
     if(n_cores==1){
         ORFs_found<-list()
         for(g in 1:length(genes_red)){
@@ -2928,8 +3001,7 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
                                     orf_find.start_sel_cutoff = stn.orf_find.start_sel_cutoff,orf_find.start_sel_cutoff_ave = stn.orf_find.start_sel_cutoff_ave,
                                     orf_find.cutoff_fr_ave=stn.orf_find.cutoff_fr_ave,orf_quant.cutoff_cums = stn.orf_quant.cutoff_cums,
                                     orf_quant.cutoff_pct = stn.orf_quant.cutoff_pct,orf_quant.cutoff_P_sites=stn.orf_quant.cutoff_P_sites)
-            
-            
+               
         }
         
     }
@@ -2945,6 +3017,8 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
     
     ORFs_found<-ORFs_found[lens>0]
     
+
+
     ORFs_txs_feats<-unlist(GRangesList(lapply(ORFs_found,function(x){unlist(x$genomic_features)})))
     ORFs_txs_feats<-ORFs_txs_feats[!duplicated(mcols(ORFs_txs_feats)) | !duplicated(ORFs_txs_feats)]
     
@@ -2953,6 +3027,14 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
     lens<-elementNROWS(ORFs_found)
     
     ORFs_found<-ORFs_found[lens>1]
+
+
+    if(length(ORFs_found)==0){
+        cat(paste("No ORFs Detected, Exiting! ... ",date(),"\n",sep = ""))
+        return(NULL)
+    }
+
+
     ORFs_tx<-unlist(GRangesList(unlist(sapply(ORFs_found,function(x){unlist(x$ORFs_tx_position)}))))
     
     ORFs_tx$TrP_pM<-NA
@@ -3069,10 +3151,10 @@ run_SaTAnn<-function(for_SaTAnn_file,annotation_file,n_cores,prefix=for_SaTAnn_f
 
 load_annotation<-function(path){
     GTF_annotation<-get(load(path))
-    library(GTF_annotation$genome_package,character.only = T)
-    genome_sequence<-get(GTF_annotation$genome_package)
+    # library(GTF_annotation$genome_package,character.only = T)
+    # genome_sequence<-get(GTF_annotation$genome_package)
     GTF_annotation<<-GTF_annotation
-    genome_seq<<-genome_sequence
+    # genome_seq<<-genome_sequence
 }
 
 
